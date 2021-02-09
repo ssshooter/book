@@ -1,4 +1,4 @@
-## References and Borrowing
+## References and Borrowing 引用与借出
 
 The issue with the tuple code in Listing 4-5 is that we have to return the
 `String` to the calling function so we can still use the `String` after the
@@ -8,6 +8,8 @@ call to `calculate_length`, because the `String` was moved into
 Here is how you would define and use a `calculate_length` function that has a
 reference to an object as a parameter instead of taking ownership of the
 value:
+
+以下你可以以一个“引用”作为参数使用 `calculate_length` 函数，而不是把参数的 ownership 交给函数：
 
 <span class="filename">Filename: src/main.rs</span>
 
@@ -20,8 +22,13 @@ function return value is gone. Second, note that we pass `&s1` into
 `calculate_length` and, in its definition, we take `&String` rather than
 `String`.
 
+首先，变量声明的元组没了，函数的 return 值没了，然后，注意我们传入 `&s1` 到 `calculate_length`，
+在函数定义时，我们使用 `&String` 而不是 `String`。
+
 These ampersands are *references*, and they allow you to refer to some value
 without taking ownership of it. Figure 4-5 shows a diagram.
+
+这些“与”符号就是**引用（reference）**，借助它你可以引用一个值而不用转移它的 ownership，如图 4-5 所示。
 
 <img alt="&String s pointing at String s1" src="img/trpl04-05.svg" class="center" />
 
@@ -32,6 +39,7 @@ s1`</span>
 > accomplished with the dereference operator, `*`. We’ll see some uses of the
 > dereference operator in Chapter 8 and discuss details of dereferencing in
 > Chapter 15.
+> 注意：
 
 Let’s take a closer look at the function call here:
 
@@ -43,8 +51,12 @@ The `&s1` syntax lets us create a reference that *refers* to the value of `s1`
 but does not own it. Because it does not own it, the value it points to will
 not be dropped when the reference goes out of scope.
 
+
+
 Likewise, the signature of the function uses `&` to indicate that the type of
 the parameter `s` is a reference. Let’s add some explanatory annotations:
+
+
 
 ```rust
 {{#rustdoc_include ../listings/ch04-understanding-ownership/no-listing-08-reference-with-annotations/src/main.rs:here}}
@@ -56,12 +68,18 @@ out of scope because we don’t have ownership. When functions have references a
 parameters instead of the actual values, we won’t need to return the values in
 order to give back ownership, because we never had ownership.
 
+
+
 We call having references as function parameters *borrowing*. As in real life,
 if a person owns something, you can borrow it from them. When you’re done, you
 have to give it back.
 
+
+
 So what happens if we try to modify something we’re borrowing? Try the code in
 Listing 4-6. Spoiler alert: it doesn’t work!
+
+
 
 <span class="filename">Filename: src/main.rs</span>
 
@@ -73,6 +91,8 @@ Listing 4-6. Spoiler alert: it doesn’t work!
 
 Here’s the error:
 
+这有一个错误：
+
 ```console
 {{#include ../listings/ch04-understanding-ownership/listing-04-06/output.txt}}
 ```
@@ -80,9 +100,13 @@ Here’s the error:
 Just as variables are immutable by default, so are references. We’re not
 allowed to modify something we have a reference to.
 
-### Mutable References
+默认情况下变量时不可修改的，引用也是。Rust 不允许我们修改被引用的东西。
+
+### Mutable References 可变引用
 
 We can fix the error in the code from Listing 4-6 with just a small tweak:
+
+我们可以通过一些微小的调整，修复例 4-6 的错误：
 
 <span class="filename">Filename: src/main.rs</span>
 
