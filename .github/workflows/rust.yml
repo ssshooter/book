@@ -20,3 +20,8 @@ jobs:
       run: cargo install mdbook
     - name: Build
       run: mdbook build
+    - name: Deploy 🚀
+      uses: JamesIves/github-pages-deploy-action@4.0.0
+      with:
+        branch: gh-pages # The branch the action should deploy to.
+        folder: book # The folder the action should deploy.
