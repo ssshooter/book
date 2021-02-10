@@ -3193,170 +3193,72 @@ taking advantage of the repetition in the song.</li>
 </ul>
 <p>When you’re ready to move on, we’ll talk about a concept in Rust that <em>doesn’t</em>
 commonly exist in other programming languages: ownership.</p>
-<h1><a class="header" href="#理解所有权" id="理解所有权">理解所有权</a></h1>
-<p>Ownership is Rust’s most unique feature, and it enables Rust to make memory
-safety guarantees without needing a garbage collector. Therefore, it’s
-important to understand how ownership works in Rust. In this chapter, we’ll
-talk about ownership as well as several related features: borrowing, slices,
-and how Rust lays data out in memory.</p>
-<p>所有权是 Rust 最独特的特性，他让 Rust 再不需要 GC 的情况下保证内存安全。
-因此理解所有权如何运行是学习 Rust 的重要一环。
-在这章中，我们会提及所有权和一些相关特性：borrowing、slices 以及 Rust 如何在内存中储存数据。</p>
-<h2><a class="header" href="#什么是-ownership" id="什么是-ownership">什么是 Ownership？</a></h2>
-<p>Rust’s central feature is <em>ownership</em>. Although the feature is straightforward
-to explain, it has deep implications for the rest of the language.</p>
-<p><strong>Ownership</strong> 是 Rust 的重要特性。尽管这个特性解释起来不难，但是它深远地影响着这个语言的每一部分。</p>
-<p>All programs have to manage the way they use a computer’s memory while running.
-Some languages have garbage collection that constantly looks for no longer used
-memory as the program runs; in other languages, the programmer must explicitly
-allocate and free the memory. Rust uses a third approach: memory is managed
-through a system of ownership with a set of rules that the compiler checks at
-compile time. None of the ownership features slow down your program while it’s
-running.</p>
-<p>所有程序都需要解决他们运行时如何使用计算机内存的问题。
-一些语言有 GC，GC 会在程序运行时自动寻找可以释放的内存，
+<h1><a class="header" href="#理解-ownership" id="理解-ownership">理解 ownership</a></h1>
+<p>所有权（ownership）是 Rust 最独特的特性，有了它 Rust 可以在不需要 GC 的情况下保证内存安全。
+因此理解 ownership 如何工作是学习 Rust 的重要一环。
+在这章中，我们会提及 ownership 和一些相关特性：borrowing、slice，并理解 Rust 如何在内存中储存数据。</p>
+<h2><a class="header" href="#什么是-ownership" id="什么是-ownership">什么是 ownership？</a></h2>
+<p><strong>Ownership</strong> 是 Rust 的重要特性。尽管这个特性直接解释起来不难，但是它深远地影响着这个语言的每一部分。</p>
+<p>所有程序都需要解决他们在运行时如何使用计算机内存的问题。
+一些语言有垃圾收集系统（GC），GC 会在程序运行时自动寻找可以释放的内存，
 在另一些语言，程序员需要显式分配和释放内存。
-而 Rust 使用第三种方式：在编译时，ownership 系统借助编译器的一系列检查规则，管理内存。
-任何 ownership 特性都不会让你的程序运行变慢。</p>
-<p>Because ownership is a new concept for many programmers, it does take some time
-to get used to. The good news is that the more experienced you become with Rust
-and the rules of the ownership system, the more you’ll be able to naturally
-develop code that is safe and efficient. Keep at it!</p>
-<p>因为 ownership 对很多程序员来说都是一个新概念，这需要花点时间去习惯它。
+而 Rust 使用第三种方式：在编译时，ownership 系统借助<strong>编译器</strong>的一系列检查规则管理内存。
+任何 ownership 特性都不会让拖慢程序的运行速度。</p>
+<p>因为 ownership 对很多程序员来说都是全新的概念，需要花点时间习惯它。
 好消息是，你对 Rust 和 ownership 系统的规则越熟悉，
-越能写自然地写出安全高效的代码。加油！</p>
-<p>When you understand ownership, you’ll have a solid foundation for understanding
-the features that make Rust unique. In this chapter, you’ll learn ownership by
-working through some examples that focus on a very common data structure:
-strings.</p>
-<p>当你理解 ownership，你就有了理解让 Rust 独一无二特性的基础。
-在这一章，你将通过一些十分常见的数据结构——字符串，来学习 ownership。</p>
+越能自然地写出安全高效的代码。加油！</p>
+<p>当你理解 ownership，你就有了理解其他 Rust 特性的巩固基础。
+在这一章，你将通过十分常见的数据结构——字符串，来学习 ownership。</p>
 <blockquote>
-<h3><a class="header" href="#the-stack-and-the-heap-栈和堆" id="the-stack-and-the-heap-栈和堆">The Stack and the Heap 栈和堆</a></h3>
-<p>In many programming languages, you don’t have to think about the stack and
-the heap very often. But in a systems programming language like Rust, whether
-a value is on the stack or the heap has more of an effect on how the language
-behaves and why you have to make certain decisions. Parts of ownership will
-be described in relation to the stack and the heap later in this chapter, so
-here is a brief explanation in preparation.</p>
-<p>在很多语言中，大多数时候你都不需要钻研栈和堆。但在 Rust 这样的语言，
-一个值存在栈或堆会对语言的行为产生影响，所以你不需要在此作出选择。
+<h3><a class="header" href="#栈stack和堆heap" id="栈stack和堆heap">栈（stack）和堆（heap）</a></h3>
+<p>在很多语言中，你基本不需要钻研栈和堆。但在 Rust 这样的语言，
+一个值存在栈或堆会对语言的行为产生影响，所以你需要在此作出正确的选择。
 这章后面的 ownership 部分会描述它与堆和栈的关系，这里仅是提前做些简单的解释。</p>
-<p>Both the stack and the heap are parts of memory that are available to your
-code to use at runtime, but they are structured in different ways. The stack
-stores values in the order it gets them and removes the values in the
-opposite order. This is referred to as <em>last in, first out</em>. Think of a stack
-of plates: when you add more plates, you put them on top of the pile, and
-when you need a plate, you take one off the top. Adding or removing plates
-from the middle or bottom wouldn’t work as well! Adding data is called
-<em>pushing onto the stack</em>, and removing data is called <em>popping off the stack</em>.</p>
-<p>堆和栈都是你的代码在运行时可以调用的一部分内存。但是他们的结构有所不同。
+<p>堆和栈都是代码在运行时可以调用的一部分内存，但是它们的结构有所不同。
 栈的储存顺序与获取顺序相同，与删除顺序相反，这就是所谓<strong>后进先出</strong>。
-就像一叠盘子，放盘子的时候你会放在那叠盘子的最上方，而取盘子的时候你会拿走最上面的一个。
+就像一叠盘子，放盘子的时候你会放在一叠盘子的最上方，而取盘子的时候你会拿走最上面的一个。
 你想在中间和底部加盘子都很不方便！添加数据我们称为<strong>推入栈中</strong>，取出数据称为<strong>弹出栈</strong>。</p>
-<p>All data stored on the stack must have a known, fixed size. Data with an
-unknown size at compile time or a size that might change must be stored on
-the heap instead. The heap is less organized: when you put data on the heap,
-you request a certain amount of space. The memory allocator finds an empty
-spot in the heap that is big enough, marks it as being in use, and returns a
-<em>pointer</em>, which is the address of that location. This process is called
-<em>allocating on the heap</em> and is sometimes abbreviated as just <em>allocating</em>.
-Pushing values onto the stack is not considered allocating. Because the
-pointer is a known, fixed size, you can store the pointer on the stack, but
-when you want the actual data, you must follow the pointer.</p>
-<p>储存在栈的数据必须有一个已知且固定的长度，而在编译时未知长度，或长度会改变的数据，储存在堆中。
-堆相对栈没有那么强的组织性：数据放入堆时，你申请了一些空间。内存分配器找到一些空位，足够你使用，将其标记为已使用，
-然后返回一个指向该地址的<strong>指针</strong>。这个过程称为<strong>在堆中分配内存</strong>，有时缩写为<strong>分配（allocating）</strong>。
+<p>储存在栈的数据必须有一个已知且固定的长度。而在编译时未知长度，或长度会改变的数据，则储存在堆中。
+堆相对栈没有那么强的组织性：数据放入堆时，你申请了一部分空间。
+内存分配器找到一块足够你使用的空位，将其标记为已使用，
+然后返回一个指向该地址的<strong>指针</strong>。这个过程称为<strong>在堆中分配内存（allocating on the heap）</strong>，有时缩写为<strong>分配（allocating）</strong>。
 推入栈的操作不属于分配，因为那个指针是已知的，固定长度的，你可以在栈中储存指针，但你想获取实际数据，就必须跟随指针寻找。</p>
-<p>Think of being seated at a restaurant. When you enter, you state the number of
-people in your group, and the staff finds an empty table that fits everyone
-and leads you there. If someone in your group comes late, they can ask where
-you’ve been seated to find you.</p>
-<p>想想你去餐厅的情况。当你进入餐厅时，你说明了一桌多少人，然后服务员找到合适的桌子并带你到那里。
+<p>举一个你去餐厅的例子。进餐厅时，你告诉服务员有多少人用餐，然后服务员找到合适的桌子并带你到那里。
 如果你的伙伴们晚了来，他们就可以问出你在哪并找到你。</p>
-<p>Pushing to the stack is faster than allocating on the heap because the
-allocator never has to search for a place to store new data; that
-location is always at the top of the stack. Comparatively, allocating space
-on the heap requires more work, because the allocator must first find
-a big enough space to hold the data and then perform bookkeeping to prepare
-for the next allocation.</p>
-<p>推入栈比堆分配更快，因为总会存在栈顶，分配器不需要寻找存放新数据的位置，而在堆分配空间就需要更多的工作，
-因为分配器必须找到一块足够大的地方存放数据，并进行记账以备下次分配。</p>
-<p>Accessing data in the heap is slower than accessing data on the stack because
-you have to follow a pointer to get there. Contemporary processors are faster
-if they jump around less in memory. Continuing the analogy, consider a server
-at a restaurant taking orders from many tables. It’s most efficient to get
-all the orders at one table before moving on to the next table. Taking an
-order from table A, then an order from table B, then one from A again, and
-then one from B again would be a much slower process. By the same token, a
-processor can do its job better if it works on data that’s close to other
-data (as it is on the stack) rather than farther away (as it can be on the
-heap). Allocating a large amount of space on the heap can also take time.</p>
+<p>推入栈比堆分配更快，因为数据总会存在栈顶，分配器不需要寻找存放新数据的位置，而堆在分配空间时需要做更多的工作，
+因为分配器必须找到一块足够大的地方存放数据，并进行记录以备下次再使用。</p>
 <p>访问堆里的数据比访问栈数据要慢，因为你要跟随指针获取数据。如果不在内存中反复横跳，近代处理器会更快一些。
 继续刚才的比喻，餐厅服务员给很多桌客人下单，最快的方法就是一张桌子全都下完单，再到下一张桌子，
 如果先给 A 下单一个菜，然后给 B 下单，又再回到 A，就会非常缓慢。同样的，处理器可以更快地当前数据临近的数据
-（就像栈这样的结构），而远的就会变慢（堆）。在堆中分配一大块空间同样消耗时间。</p>
-<p>When your code calls a function, the values passed into the function
-(including, potentially, pointers to data on the heap) and the function’s
-local variables get pushed onto the stack. When the function is over, those
-values get popped off the stack.</p>
-<p>当你的代码调用函数，值会被传入函数（也有可能时指向堆数据的指针），
+（就像栈这样的结构），而远的就会变慢（堆）。同时，在堆中分配空间也消耗时间。</p>
+<p>当你的代码调用函数，值（也有可能是指向堆数据的指针）会被传入函数，
 然后函数的本地变量会被推入栈中，函数运行结束，这些变量会被弹出。</p>
-<p>Keeping track of what parts of code are using what data on the heap,
-minimizing the amount of duplicate data on the heap, and cleaning up unused
-data on the heap so you don’t run out of space are all problems that ownership
-addresses. Once you understand ownership, you won’t need to think about the
-stack and the heap very often, but knowing that managing heap data is why
-ownership exists can help explain why it works the way it does.</p>
+<p>Ownership 要做的就是保持跟踪不同的代码使用堆中的不同数据，
+最小化堆中的重复数据、清除无用数据，保证你的内存不会爆炸。
+一旦你理解 ownership，你就不用整天关注堆和栈，不过知道管理堆数据是 ownership 的存在意义，
+可以帮助你理解它为什么要如此设计。</p>
 </blockquote>
 <h3><a class="header" href="#ownership-规则" id="ownership-规则">Ownership 规则</a></h3>
-<p>First, let’s take a look at the ownership rules. Keep these rules in mind as we
-work through the examples that illustrate them:</p>
-<p>首先，我们看看 Ownership 的几条规则，记住这些规则，再看看下面详细介绍的例子：</p>
+<p>首先，我们看看 ownership 的几条规则，记住这些规则，再看看下面详细介绍的例子：</p>
 <ul>
-<li>
-<p>Each value in Rust has a variable that’s called its <em>owner</em>.</p>
-</li>
-<li>
-<p>There can only be one owner at a time.</p>
-</li>
-<li>
-<p>When the owner goes out of scope, the value will be dropped.</p>
-</li>
-<li>
-<p>Rust 里的每个值都有一个叫<strong>owner</strong>的变量。</p>
-</li>
-<li>
-<p>一个值同时只能有一个 owner</p>
-</li>
-<li>
-<p>owner 离开作用域时，值将被抛弃</p>
-</li>
+<li>Rust 里的每个值都有一个叫 <strong>owner</strong> 的变量。</li>
+<li>一个值同时只能有一个 owner</li>
+<li>owner 离开作用域时，值将被抛弃（drop）</li>
 </ul>
-<h3><a class="header" href="#variable-scope-变量作用域" id="variable-scope-变量作用域">Variable Scope 变量作用域</a></h3>
-<p>We’ve walked through an example of a Rust program already in Chapter 2. Now
-that we’re past basic syntax, we won’t include all the <code>fn main() {</code> code in
-examples, so if you’re following along, you’ll have to put the following
-examples inside a <code>main</code> function manually. As a result, our examples will be a
-bit more concise, letting us focus on the actual details rather than
-boilerplate code.</p>
-<p>As a first example of ownership, we’ll look at the <em>scope</em> of some variables. A
-scope is the range within a program for which an item is valid. Let’s say we
-have a variable that looks like this:</p>
+<h3><a class="header" href="#变量作用域" id="变量作用域">变量作用域</a></h3>
+<p>第二章中已经学习过几个 Rust 程序的实例，现在我们不关心基础的语法问题，
+暂时去掉 <code>fn main() {</code>，如果你想跟着做，需要手动加上 <code>main</code> 函数。
+这样，我们的例子会更简洁，让我们更关注我们需要关注的细节。</p>
 <p>来看看 ownership 的第一个例子，变量的<strong>作用域</strong>。
 作用域是在程序里的一个范围，在这个范围内，变量是有效的。
-举个例子，我们有一个变量：</p>
+举个例子，我们有一个变量 <code>s</code>：</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = &quot;hello&quot;;
 <span class="boring">}
 </span></code></pre></pre>
-<p>The variable <code>s</code> refers to a string literal, where the value of the string is
-hardcoded into the text of our program. The variable is valid from the point at
-which it’s declared until the end of the current <em>scope</em>. Listing 4-1 has
-comments annotating where the variable <code>s</code> is valid.</p>
-<p>变量 <code>s</code> 指向一个字符串字面量，这个值是写死在程序中的。
+<p>变量 <code>s</code> 指向一个字符串字面量（string literal），这个值是写死在程序中的。
 这个变量从声明到当前<strong>作用域</strong>结束，是可用的。例 4-1 的注释说明了 <code>s</code> 的使用范围。</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">fn main() {
 </span>    {                      // s is not valid here, it’s not yet declared
@@ -3367,72 +3269,32 @@ comments annotating where the variable <code>s</code> is valid.</p>
 <span class="boring">}
 </span></code></pre></pre>
 <p><span class="caption">例 4-1：变量与它的有效作用域</span></p>
-<p>In other words, there are two important points in time here:</p>
 <p>换言之，有两个重点：</p>
 <ul>
-<li>
-<p>When <code>s</code> comes <em>into scope</em>, it is valid.</p>
-</li>
-<li>
-<p>It remains valid until it goes <em>out of scope</em>.</p>
-</li>
-<li>
-<p><code>s</code> 进入作用域，那么它是可用的</p>
-</li>
-<li>
-<p>直到脱离当前作用域，一直可用</p>
-</li>
+<li><code>s</code> <strong>进入作用域</strong>，那么它是有效的</li>
+<li>直到<strong>脱离当前作用域</strong>，一直有效</li>
 </ul>
-<p>At this point, the relationship between scopes and when variables are valid is
-similar to that in other programming languages. Now we’ll build on top of this
-understanding by introducing the <code>String</code> type.</p>
-<p>暂时为止，作用域和变量是否可用的关系与其他语言基本一样。现在我们在此基础上，介绍 <code>String</code> 类型。</p>
+<p>暂时为止，作用域和变量有效性的关系与其他语言基本一样。现在我们在此基础上，介绍 <code>String</code> 类型。</p>
 <h3><a class="header" href="#string-类型" id="string-类型"><code>String</code> 类型</a></h3>
-<p>To illustrate the rules of ownership, we need a data type that is more complex
-than the ones we covered in the <a href="ch03-02-data-types.html#data-types">“Data Types”</a><!-- ignore -->
-section of Chapter 3. The types covered previously are all stored on the stack
-and popped off the stack when their scope is over, but we want to look at data
-that is stored on the heap and explore how Rust knows when to clean up that
-data.</p>
-<p>说明 ownership 规则，我们需要一种更复杂的数据格式。
-第三章中，那些类型都储存于栈中，在离开作用域时，弹出栈，但我们现在要研究储存于堆中的数据，
+<p>为了说明 ownership 的规则，我们需要一种比第三章提到的更复杂的<a href="ch03-02-data-types.html#data-types">数据格式</a><!-- ignore -->。
+之前提到的类型都储存于栈中，在离开作用域时，弹出栈，但我们现在要研究储存于堆中的数据，
 并搞清楚 Rust 如何清理这些数据。</p>
-<p>We’ll use <code>String</code> as the example here and concentrate on the parts of <code>String</code>
-that relate to ownership. These aspects also apply to other complex data types,
-whether they are provided by the standard library or created by you. We’ll
-discuss <code>String</code> in more depth in Chapter 8.</p>
-<p>例子中我们使用 <code>String</code>，并关注 <code>String</code> 与 ownership 的关系。它的表现与其他复杂数据类型类似，
-不管这些数据由标准库提供还是你自己创建的。我们将会在第八章深入讨论 <code>String</code>。</p>
-<p>We’ve already seen string literals, where a string value is hardcoded into our
-program. String literals are convenient, but they aren’t suitable for every
-situation in which we may want to use text. One reason is that they’re
-immutable. Another is that not every string value can be known when we write
-our code: for example, what if we want to take user input and store it? For
-these situations, Rust has a second string type, <code>String</code>. This type is
-allocated on the heap and as such is able to store an amount of text that is
-unknown to us at compile time. You can create a <code>String</code> from a string literal
-using the <code>from</code> function, like so:</p>
-<p>上面已经使用过字符串字面量，一个字符串值写死到程序中。字符串字面量是约定好的，他们不能适应各种情况。
-原因就是他们是不变的（immutable）。不是所有字符串值都是确定的，例如我们想获取用户输入然后储存起来要怎么办？
-要应付这种情况，Rust 有第二种字符串类型，<code>String</code>。这个类型分配堆空间，可以存放一些我们在编译时未确定的文本。
-你可以通过 <code>from</code> 函数由字符串字面量创建 <code>String</code>，就像这样：</p>
+<p>例子中我们使用 <code>String</code>，并关注它与 ownership 的关系。
+它的表现与其他复杂数据类型（不管是标准库提供还是你自己创建的）类似。我们将会在第八章深入讨论 <code>String</code>。</p>
+<p>上面已经使用过字符串字面量，也就是字符串的值写死到程序中。字符串字面量很方便，但不能适应各种情况，
+原因就是他们是不可变的（immutable）。不是所有字符串的值都是确定的，例如我们想获取用户输入然后储存起来要怎么办？
+要应付这种情况，Rust 提供第二种字符串类型，<code>String</code>。这个类型分配堆空间，可以存放一些我们在编译时未确定的文本。
+你可以通过 <code>from</code> 函数由字符串字面量创建 <code>String</code>：</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = String::from(&quot;hello&quot;);
 <span class="boring">}
 </span></code></pre></pre>
-<p>The double colon (<code>::</code>) is an operator that allows us to namespace this
-particular <code>from</code> function under the <code>String</code> type rather than using some sort
-of name like <code>string_from</code>. We’ll discuss this syntax more in the <a href="ch05-03-method-syntax.html#method-syntax">“Method
-Syntax”</a><!-- ignore --> section of Chapter 5 and when we talk
-about namespacing with modules in <a href="ch07-03-paths-for-referring-to-an-item-in-the-module-tree.html">“Paths for Referring to an Item in the
-Module Tree”</a><!-- ignore --> in Chapter 7.</p>
 <p>双冒号（<code>::</code>）操作符让你在 <code>String</code> 命名空间下使用 <code>from</code> 函数，而不是通过 <code>string_from</code> 之类的方法。
 我们会在第五章 <a href="ch05-03-method-syntax.html#method-syntax">“Method Syntax”</a><!-- ignore --> 部分讨论更多语法，
 在第七章 <a href="ch07-03-paths-for-referring-to-an-item-in-the-module-tree.html">“Paths for Referring to an Item in the Module Tree”</a><!-- ignore -->
 讨论命名空间和模块化。</p>
-<p>This kind of string <em>can</em> be mutated:</p>
 <p>这种字符串是<strong>可以</strong>被修改的：</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">fn main() {
 </span>    let mut s = String::from(&quot;hello&quot;);
@@ -3442,62 +3304,27 @@ Module Tree”</a><!-- ignore --> in Chapter 7.</p>
     println!(&quot;{}&quot;, s); // This will print `hello, world!`
 <span class="boring">}
 </span></code></pre></pre>
-<p>So, what’s the difference here? Why can <code>String</code> be mutated but literals
-cannot? The difference is how these two types deal with memory.</p>
 <p>那么这里面有什么不同？为什么 <code>String</code> 可以被修改但是字面量不可以呢？
 其中缘由就是他们在内存中的两种不同处理方式。</p>
-<h3><a class="header" href="#memory-and-allocation-内存与分配" id="memory-and-allocation-内存与分配">Memory and Allocation 内存与分配</a></h3>
-<p>In the case of a string literal, we know the contents at compile time, so the
-text is hardcoded directly into the final executable. This is why string
-literals are fast and efficient. But these properties only come from the string
-literal’s immutability. 
-Unfortunately, we can’t put a blob of memory into the
-binary for each piece of text whose size is unknown at compile time and whose
-size might change while running the program.</p>
-<p>在字符串字面量的例子中，我们在编译时就确定了内容，所以文本直接写死到可执行文件。
+<h3><a class="header" href="#内存与分配allocation" id="内存与分配allocation">内存与分配（Allocation）</a></h3>
+<p>在字符串字面量的例子中，我们在编译时就确定了内容，所以文本直接写死到最后的可执行文件。
 这就是文本字面量快速高效的原因。但这些好处来源于字符串字面量的不变性。
 我们不能把大小未知或在运行时会遭到修改的文本编译为二进制文件。</p>
-<p>With the <code>String</code> type, in order to support a mutable, growable piece of text,
-we need to allocate an amount of memory on the heap, unknown at compile time,
-to hold the contents. This means:</p>
-<p>使用 <code>String</code> 支持可变的文本，需要在堆中分配一部分内存来放置这些内容，其分配大小在编译时是未知的，也就是：</p>
+<p>使用 <code>String</code> 支持可变的文本，需要在堆中分配内存来放置这些内容，其分配大小在编译时是未知的，意味着：</p>
 <ul>
-<li>
-<p>The memory must be requested from the memory allocator at runtime.</p>
-</li>
-<li>
-<p>We need a way of returning this memory to the allocator when we’re
-done with our <code>String</code>.</p>
-</li>
-<li>
-<p>分配器需要在运行时请求内存</p>
-</li>
-<li>
-<p>我们需要在使用完 <code>String</code> 归还那部分内存</p>
-</li>
+<li>分配器需要在运行时请求内存</li>
+<li>我们需要在使用完 <code>String</code> 之后归还那部分内存</li>
 </ul>
 <p>That first part is done by us: when we call <code>String::from</code>, its implementation
 requests the memory it needs. This is pretty much universal in programming
 languages.</p>
-<p>第一部分已经在调用 <code>String::from</code> 的时候完成了，执行后它获得了它需要的内存。
+<p>第一部分已经在调用 <code>String::from</code> 的时候完成了，执行后它获得了所需的内存。
 这在编程语言中很常见。</p>
-<p>However, the second part is different. In languages with a <em>garbage collector
-(GC)</em>, the GC keeps track and cleans up memory that isn’t being used anymore,
-and we don’t need to think about it. Without a GC, it’s our responsibility to
-identify when memory is no longer being used and call code to explicitly return
-it, just as we did to request it. Doing this correctly has historically been a
-difficult programming problem. If we forget, we’ll waste memory. If we do it
-too early, we’ll have an invalid variable. If we do it twice, that’s a bug too.
-We need to pair exactly one <code>allocate</code> with exactly one <code>free</code>.</p>
 <p>然而第二部分就有点不一样了。在有**垃圾回收（GC）**的语言中，GC 会跟踪清理那些不再被占用的内存，我们无需为此操心。
 如果没有 GC，归还内存就是我们程序员的责任了，就像声明时获取内存一样，释放内存时也要通过代码操作。
-做好这一步是编程的历史性难题。如果我们忘记了，就会浪费内存，如果过早释放内存，我们的变量就无效了，
-要是我们释放了两次，同样是个 bug。我们需要 <code>allocate</code> 和 <code>free</code> 的一对一配对。</p>
-<p>Rust takes a different path: the memory is automatically returned once the
-variable that owns it goes out of scope. Here’s a version of our scope example
-from Listing 4-1 using a <code>String</code> instead of a string literal:</p>
-<p>Rust 另辟蹊径：变量离开它的作用域时，内存会被自动释放。
-这里有一个例 4-1 的 <code>String</code> 版本：</p>
+做好这一步是编程的历史性难题。如果忘记释放，就会浪费内存，如果过早释放，变量就无效了，
+要是我们释放了两次，同样是个 bug。<code>allocate</code> 和 <code>free</code> 必须一对一配对。</p>
+<p>Rust 另辟蹊径：变量离开作用域时，内存会被自动释放。请看例 4-1 的 <code>String</code> 版本：</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">fn main() {
 </span>    {
         let s = String::from(&quot;hello&quot;); // s is valid from this point forward
@@ -3507,33 +3334,20 @@ from Listing 4-1 using a <code>String</code> instead of a string literal:</p>
                                        // longer valid
 <span class="boring">}
 </span></code></pre></pre>
-<p>There is a natural point at which we can return the memory our <code>String</code> needs
-to the allocator: when <code>s</code> goes out of scope. When a variable goes out of
-scope, Rust calls a special function for us. This function is called <a href="../std/ops/trait.Drop.html#tymethod.drop"><code>drop</code></a>,
-and it’s where the author of <code>String</code> can put the code to return the memory.
-Rust calls <code>drop</code> automatically at the closing curly bracket.</p>
 <p>很自然地，在 <code>s</code> 离开作用域时，<code>String</code> 的内存会被归还到分配器。
 在变量离开作用域时，Rust 自动为我们调用了一个特殊函数——<a href="../std/ops/trait.Drop.html#tymethod.drop"><code>drop</code></a>，
 <code>String</code> 的作者已经将回收内存的代码写到里面了。
 Rust 会在遇到右花括号时自动调用 <code>drop</code>。</p>
 <blockquote>
-<p>Note: In C++, this pattern of deallocating resources at the end of an item’s
-lifetime is sometimes called <em>Resource Acquisition Is Initialization (RAII)</em>.
-The <code>drop</code> function in Rust will be familiar to you if you’ve used RAII
-patterns.</p>
 <p>注意：在 C++ 中，这种在变量生命周期结束时释放资源的方式称为 <strong>Resource Acquisition Is Initialization (RAII)</strong>。
 如果你曾经接触过 RAII 模式，那么 Rust <code>drop</code> 函数会让你觉得很类似。</p>
 </blockquote>
-<p>This pattern has a profound impact on the way Rust code is written. It may seem
-simple right now, but the behavior of code can be unexpected in more
-complicated situations when we want to have multiple variables use the data
-we’ve allocated on the heap. Let’s explore some of those situations now.</p>
-<p>这个模式对 Rust 代码的编写方式有深远的影响。虽然到现在为止看起来还很简单，但是随着越来越多的变量
-储存到堆中，你的代码可能会出现一些意想不到的问题。接下来我们看看这些情况吧。</p>
+<p>这个模式对 Rust 代码的编写方式有深远的影响。虽然到现在为止看起来还很简单，
+但是多个变量使用堆中的同一数据时，代码可能会出现一些意想不到的问题。接下来我们看看这些情况吧。</p>
 <h4><a class="header" href="#变量和数据的交互方式move" id="变量和数据的交互方式move">变量和数据的交互方式：Move</a></h4>
 <p>Multiple variables can interact with the same data in different ways in Rust.
 Let’s look at an example using an integer in Listing 4-2.</p>
-<p>在 Rust 中，不同的变量可能以不同方式交互相同的数据，
+<p>在 Rust 中，多个的变量可能以不同方式处理同一个数据，
 我们来看看例 4-2，使用整形。</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">fn main() {
 </span>    let x = 5;
@@ -3541,77 +3355,38 @@ Let’s look at an example using an integer in Listing 4-2.</p>
 <span class="boring">}
 </span></code></pre></pre>
 <p><span class="caption">例 4-2：把整形的 <code>x</code> 赋值到 <code>y</code></span></p>
-<p>We can probably guess what this is doing: “bind the value <code>5</code> to <code>x</code>; then make
-a copy of the value in <code>x</code> and bind it to <code>y</code>.” We now have two variables, <code>x</code>
-and <code>y</code>, and both equal <code>5</code>. This is indeed what is happening, because integers
-are simple values with a known, fixed size, and these two <code>5</code> values are pushed
-onto the stack.</p>
 <p>我们可以猜测其中发生的事情：<code>5</code> 绑定到 <code>x</code>，然后复制一份 <code>x</code> 的值，然后绑定到 <code>y</code>。
 现在就有了 <code>x</code> 和 <code>y</code> 两个变量，都等于 <code>5</code>。事实上，确实是这样，因为整形是确定的简单值，而且确定大小。
 这两个 <code>5</code> 都被推入栈中。</p>
-<p>Now let’s look at the <code>String</code> version:</p>
 <p>现在看看 <code>String</code> 的情况：</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">fn main() {
 </span>    let s1 = String::from(&quot;hello&quot;);
     let s2 = s1;
 <span class="boring">}
 </span></code></pre></pre>
-<p>This looks very similar to the previous code, so we might assume that the way
-it works would be the same: that is, the second line would make a copy of the
-value in <code>s1</code> and bind it to <code>s2</code>. But this isn’t quite what happens.</p>
-<p>这与前面一段代码很像，所以我们推测它们的工作方式也类似：第二行获取 <code>s1</code> 的值的拷贝，然后绑定到 <code>s2</code>。但事实上不是这样的。</p>
-<p>Take a look at Figure 4-1 to see what is happening to <code>String</code> under the
-covers. A <code>String</code> is made up of three parts, shown on the left: a pointer to
-the memory that holds the contents of the string, a length, and a capacity.
-This group of data is stored on the stack. On the right is the memory on the
-heap that holds the contents.</p>
+<p>这与前面一段代码很像，我们推测两者的工作方式也类似：
+第二行获取 <code>s1</code> 的值的拷贝，然后绑定到 <code>s2</code>。但事实上不是这样的。</p>
 <p>图 4-1 展示了 <code>String</code> 在底层的储存方式，它由三部分组成（图的左边）：一个指向储存着字符串内容的内存的指针、
-长度还有容量。这组数据储存在栈中，右边则是堆内存，里面储存着字符串的内容。</p>
+长度还有容量。左边的数据储存在栈中，右边则是在堆中，里面储存着字符串的内容。</p>
 <img alt="String in memory" src="img/trpl04-01.svg" class="center" style="width: 50%;" />
 <p><span class="caption">图 4-1：在内存中，<code>String</code> 储存 <code>&quot;hello&quot;</code> 的值并绑定到 <code>s1</code></span></p>
-<p>The length is how much memory, in bytes, the contents of the <code>String</code> is
-currently using. The capacity is the total amount of memory, in bytes, that the
-<code>String</code> has received from the allocator. The difference between length
-and capacity matters, but not in this context, so for now, it’s fine to ignore
-the capacity.</p>
-<p>长度是 <code>String</code> 当前使用的内存，单位为 byte。容量是分配器给<code>String</code>分配的总内存，单位为 byte。
+<p>长度是 <code>String</code> 当前使用的内存，单位为 byte。容量是分配器给 <code>String</code> 分配的总内存，单位为 byte。
 长度和容量是有区别的，但是我们暂时不用纠结这个问题，总之现在先忽略容量吧。</p>
-<p>When we assign <code>s1</code> to <code>s2</code>, the <code>String</code> data is copied, meaning we copy the
-pointer, the length, and the capacity that are on the stack. We do not copy the
-data on the heap that the pointer refers to. In other words, the data
-representation in memory looks like Figure 4-2.</p>
 <p>当将 <code>s1</code> 赋值给 <code>s2</code> 时，<code>String</code> 数据被复制了一份，也就是说，复制了指针、长度和容量这三个储存在栈中的值。
 而指针指向的堆中的数据则不会复制。换言之，数据在内存中如图 4-2 所示。</p>
 <img alt="s1 and s2 pointing to the same value" src="img/trpl04-02.svg" class="center" style="width: 50%;" />
 <p><span class="caption">图 4-2: 内存中，<code>s2</code> 复制了 <code>s1</code> 的指针、长度和容量</span></p>
-<p>The representation does <em>not</em> look like Figure 4-3, which is what memory would
-look like if Rust instead copied the heap data as well. If Rust did this, the
-operation <code>s2 = s1</code> could be very expensive in terms of runtime performance if
-the data on the heap were large.</p>
 <p>而<strong>不会</strong>是图 4-3 这样，把堆的数据也复制一遍。如果 Rust 这么做，在堆中数据十分庞大的情况下，
 <code>s2 = s1</code> 这个操作就会花费很多时间，影响运行时表现。</p>
 <img alt="s1 and s2 to two places" src="img/trpl04-03.svg" class="center" style="width: 50%;" />
-<p><span class="caption">Figure 4-3: Another possibility for what <code>s2 = s1</code> might
-do if Rust copied the heap data as well</span></p>
-<p>Earlier, we said that when a variable goes out of scope, Rust automatically
-calls the <code>drop</code> function and cleans up the heap memory for that variable. But
-Figure 4-2 shows both data pointers pointing to the same location. This is a
-problem: when <code>s2</code> and <code>s1</code> go out of scope, they will both try to free the
-same memory. This is known as a <em>double free</em> error and is one of the memory
-safety bugs we mentioned previously. Freeing memory twice can lead to memory
-corruption, which can potentially lead to security vulnerabilities.</p>
+<p><span class="caption">图 4-3：如果 <code>s2 = s1</code> Rust 复制了堆里的数据</span></p>
 <p>之前，我们提到当变量离开作用域，Rust 会自动调用 <code>drop</code> 函数清理堆中内存。
-但图 4-2 所示，有两个数据的指针都指向同一个位置，这就成问题了：<code>s2</code> 和 <code>s1</code> 离开作用域，
+但图 4-2 所示，有两个数据的指针都指向同一个位置，这就成问题了：<code>s2</code> 和 <code>s1</code> 同时离开作用域，
 它们会同时释放同一块内存，这被称为<strong>double free</strong>错误，是一个我们之前提到的内存安全问题。
 释放内存两次会导致 memory corruption，造成潜在的安全漏洞。</p>
-<p>To ensure memory safety, there’s one more detail to what happens in this
-situation in Rust. Instead of trying to copy the allocated memory, Rust
-considers <code>s1</code> to no longer be valid and, therefore, Rust doesn’t need to free
-anything when <code>s1</code> goes out of scope. Check out what happens when you try to
-use <code>s1</code> after <code>s2</code> is created; it won’t work:</p>
 <p>为了保证内存安全，在这种情况下 Rust 有一个细节操作。与其复制一份已经分配的内存，
-Rust 直接将 <code>s1</code> 视为不可用，因此Rust 在<code>s1</code>离开作用域时就不需要释放内存了。
-看看再<code>s2</code>创建后再使用<code>s1</code> 会怎么样？结果是它不能用了：</p>
+Rust 直接将 <code>s1</code> 视为不可用，因此 Rust 在<code>s1</code>离开作用域时就不需要释放内存了。
+试试在 <code>s2</code> 创建后再使用 <code>s1</code> 会怎么样？结果是它不能用了：</p>
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">fn main() {
 </span>    let s1 = String::from(&quot;hello&quot;);
     let s2 = s1;
@@ -3619,8 +3394,6 @@ Rust 直接将 <code>s1</code> 视为不可用，因此Rust 在<code>s1</code>�
     println!(&quot;{}, world!&quot;, s1);
 <span class="boring">}
 </span></code></pre>
-<p>You’ll get an error like this because Rust prevents you from using the
-invalidated reference:</p>
 <p>Rust 会报出一个这样的错误，防止你使用已经无效的引用：</p>
 <pre><code class="language-console">$ cargo run
    Compiling ownership v0.1.0 (file:///projects/ownership)
@@ -3648,29 +3421,19 @@ without copying the data probably sounds like making a shallow copy. But
 because Rust also invalidates the first variable, instead of being called a
 shallow copy, it’s known as a <em>move</em>. In this example, we would say that
 <code>s1</code> was <em>moved</em> into <code>s2</code>. So what actually happens is shown in Figure 4-4.</p>
-<p>如果你之前听说过<strong>浅复制</strong>和<strong>深复制</strong>，只复制指针、长度和容量就像是浅复制。
-但因为 Rust 会同时让之前的变量无效，所以就不称其为浅复制，而是<strong>move</strong>。
+<p>如果你之前听说过<strong>浅复制（shallow copy）<strong>和</strong>深复制（deep copy）</strong>，
+只复制指针、长度和容量就类似浅复制。
+但因为 Rust 会同时让之前的变量无效，所以就不称其为浅复制，而称为 <strong>move</strong>。
 在这个例子里，我们可以说 <code>s1</code> <strong>移动到了</strong> <code>s2</code>，所以实际情况如图 4-4 所示。</p>
 <img alt="s1 moved to s2" src="img/trpl04-04.svg" class="center" style="width: 50%;" />
-<p><span class="caption">Figure 4-4: Representation in memory after <code>s1</code> has been
-invalidated</span></p>
-<p>That solves our problem! With only <code>s2</code> valid, when it goes out of scope, it
-alone will free the memory, and we’re done.</p>
+<p><span class="caption">图 4-4：内存中 <code>s1</code> 已失效</span></p>
 <p>这就解决了问题，只有 <code>s2</code> 有效的情况下，离开作用域时只有它被释放，搞定。</p>
-<p>In addition, there’s a design choice that’s implied by this: Rust will never
-automatically create “deep” copies of your data. Therefore, any <em>automatic</em>
-copying can be assumed to be inexpensive in terms of runtime performance.</p>
-<p>这是一个设计上的选择，Rust 永远不会自动深复制你的数据，因此任何
+<p>这是一个设计上的选择，Rust 永远不会自动深复制你的数据，任何
 <strong>默认的</strong>复制为了保证运行时性能都会选择最快捷的方式。</p>
 <h4><a class="header" href="#变量和数据的交互方式clone" id="变量和数据的交互方式clone">变量和数据的交互方式：Clone</a></h4>
-<p>If we <em>do</em> want to deeply copy the heap data of the <code>String</code>, not just the
-stack data, we can use a common method called <code>clone</code>. We’ll discuss method
-syntax in Chapter 5, but because methods are a common feature in many
-programming languages, you’ve probably seen them before.</p>
 <p>如果我们<strong>就是</strong>需要深复制堆里的 <code>String</code> 数据，我们可以使用通用方法 <code>clone</code>。
-我们将会在第五章讨论方法语法，但毕竟方法是编程语言的常见特性，大家应该在之前就接触过了。</p>
-<p>Here’s an example of the <code>clone</code> method in action:</p>
-<p>这是一个 <code>clone</code> 方法的例子：</p>
+我们将会在第五章讨论方法语法，但毕竟方法是编程语言的常见特性，大家应该都已经接触过了。</p>
+<p>使用 <code>clone</code> 方法的例子：</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">fn main() {
 </span>    let s1 = String::from(&quot;hello&quot;);
     let s2 = s1.clone();
@@ -3678,15 +3441,9 @@ programming languages, you’ve probably seen them before.</p>
     println!(&quot;s1 = {}, s2 = {}&quot;, s1, s2);
 <span class="boring">}
 </span></code></pre></pre>
-<p>This works just fine and explicitly produces the behavior shown in Figure 4-3,
-where the heap data <em>does</em> get copied.</p>
 <p>这样就产生了图 4-3 的效果，堆中的数据<strong>也成功被复制</strong>。</p>
-<p>When you see a call to <code>clone</code>, you know that some arbitrary code is being
-executed and that code may be expensive. It’s a visual indicator that something
-different is going on.</p>
+<p>看到 <code>clone</code> 被调用，你要立刻反应到代码的性能可能会可能不高，明白地告诉你这些代码会有点与众不同。</p>
 <h4><a class="header" href="#栈数据专用的copy" id="栈数据专用的copy">栈数据专用的：Copy</a></h4>
-<p>There’s another wrinkle we haven’t talked about yet. This code using integers –
-part of which was shown in Listing 4-2 – works and is valid:</p>
 <p>还有一个小问题我们还未谈到。例 4-2 中代码使用了整形数，它正常工作，完全合理。</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">fn main() {
 </span>    let x = 5;
@@ -3695,40 +3452,36 @@ part of which was shown in Listing 4-2 – works and is valid:</p>
     println!(&quot;x = {}, y = {}&quot;, x, y);
 <span class="boring">}
 </span></code></pre></pre>
-<p>But this code seems to contradict what we just learned: we don’t have a call to
-<code>clone</code>, but <code>x</code> is still valid and wasn’t moved into <code>y</code>.</p>
 <p>但这代码似乎和我们刚学到的有冲突：我们没有用 <code>clone</code>，但是 <code>x</code> 依然可用，没有被 move 到 <code>y</code>。</p>
-<p>The reason is that types such as integers that have a known size at compile
-time are stored entirely on the stack, so copies of the actual values are quick
-to make. That means there’s no reason we would want to prevent <code>x</code> from being
-valid after we create the variable <code>y</code>. In other words, there’s no difference
-between deep and shallow copying here, so calling <code>clone</code> wouldn’t do anything
-different from the usual shallow copying and we can leave it out.</p>
-<p>原因是整形等类型在编译时拥有确定的大小，并可以完全储存在栈中，所以复制实际的值也十分快捷。
-所以也就没有必要在创建 <code>y</code> 后让 <code>x</code> 无效了。换言之，深浅复制在这里毫无区别，
-用不用 <code>clone</code> 也不会有什么不同，这种情况下可以忽略它的存在。</p>
+<p>原因是整形等类型在编译时拥有确定的大小，并<strong>可以完全储存在栈中</strong>，所以复制实际的值也十分快捷，
+也就没有必要在创建 <code>y</code> 后让 <code>x</code> 无效了。换言之，深浅复制在这里毫无区别，
+用不用 <code>clone</code> 不会有什么不同。</p>
 <p>Rust has a special annotation called the <code>Copy</code> trait that we can place on
 types like integers that are stored on the stack (we’ll talk more about traits
 in Chapter 10). If a type implements the <code>Copy</code> trait, an older variable is
-still usable after assignment. Rust won’t let us annotate a type with the
+still usable after assignment. </p>
+<p>Rust won’t let us annotate a type with the
 <code>Copy</code> trait if the type, or any of its parts, has implemented the <code>Drop</code>
 trait. If the type needs something special to happen when the value goes out of
 scope and we add the <code>Copy</code> annotation to that type, we’ll get a compile-time
 error. To learn about how to add the <code>Copy</code> annotation to your type to
 implement the trait, see <a href="appendix-03-derivable-traits.html">“Derivable Traits”</a><!-- ignore -->
 in Appendix C.</p>
+<p>Rust 有一种特别的写法，称为 <code>Copy</code> 特性（trait）。
+我们将在第十章了解更多关于 trait 的东西
+如果一个类型实现了 <code>Copy</code> 特性，旧变量在赋值后依然可用。
+Rust </p>
 <p>So what types implement the <code>Copy</code> trait? You can check the documentation for
 the given type to be sure, but as a general rule, any group of simple scalar
 values can implement <code>Copy</code>, and nothing that requires allocation or is some
 form of resource can implement <code>Copy</code>. Here are some of the types that
 implement <code>Copy</code>:</p>
 <ul>
-<li>All the integer types, such as <code>u32</code>.</li>
-<li>The Boolean type, <code>bool</code>, with values <code>true</code> and <code>false</code>.</li>
-<li>All the floating point types, such as <code>f64</code>.</li>
-<li>The character type, <code>char</code>.</li>
-<li>Tuples, if they only contain types that also implement <code>Copy</code>. For example,
-<code>(i32, i32)</code> implements <code>Copy</code>, but <code>(i32, String)</code> does not.</li>
+<li>所有整形，如 <code>u32</code></li>
+<li>布尔值 <code>bool</code>，值为 <code>true</code> 和 <code>false</code></li>
+<li>所有浮点型，如 <code>f64</code></li>
+<li>字符型 <code>char</code></li>
+<li>元组，如果只包含指定类型，也可以实现 <code>Copy</code>，例如 <code>(i32, i32)</code> 可以 <code>Copy</code>，<code>(i32, String)</code> 不行</li>
 </ul>
 <h3><a class="header" href="#ownership-和函数" id="ownership-和函数">Ownership 和函数</a></h3>
 <p>The semantics for passing a value to a function are similar to those for
@@ -3769,9 +3522,7 @@ code to <code>main</code> that uses <code>s</code> and <code>x</code> to see whe
 the ownership rules prevent you from doing so.</p>
 <p>如果在 <code>takes_ownership</code> 后访问 <code>s</code>，Rust 会抛出编译错误。这种静态检测提早提醒我们修复错误。
 你可以尝试在 <code>main</code> 添加一些代码，看看 <code>s</code> 和 <code>x</code> 的使用范围。</p>
-<h3><a class="header" href="#return-values-and-scope-返回值与作用域" id="return-values-and-scope-返回值与作用域">Return Values and Scope 返回值与作用域</a></h3>
-<p>Returning values can also transfer ownership. Listing 4-4 is an example with
-similar annotations to those in Listing 4-3.</p>
+<h3><a class="header" href="#返回值与作用域" id="返回值与作用域">返回值与作用域</a></h3>
 <p>返回值也能转移 ownership，请看例 4-4。</p>
 <p><span class="filename">Filename: src/main.rs</span></p>
 <pre><pre class="playground"><code class="language-rust">fn main() {
@@ -3805,11 +3556,7 @@ fn takes_and_gives_back(a_string: String) -&gt; String { // a_string comes into
 }
 </code></pre></pre>
 <p><span class="caption">例 4-4：转移返回值的 ownership</span></p>
-<p>The ownership of a variable follows the same pattern every time: assigning a
-value to another variable moves it. When a variable that includes data on the
-heap goes out of scope, the value will be cleaned up by <code>drop</code> unless the data
-has been moved to be owned by another variable.</p>
-<p>变量的 ownership 遵循相同的模式：赋值到另一个变量 move 它。
+<p>变量的 ownership 遵循相同的模式：一个变量赋值到另一个变量会 move 它。
 当一个包含堆数据的变量离开作用域，它的值会被 <code>drop</code> 清理——
 除非这些数据已经被 move 到了其他变量。</p>
 <p>Taking ownership and then returning ownership with every function is a bit
@@ -3817,7 +3564,7 @@ tedious. What if we want to let a function use a value but not take ownership?
 It’s quite annoying that anything we pass in also needs to be passed back if we
 want to use it again, in addition to any data resulting from the body of the
 function that we might want to return as well.</p>
-<p>It’s possible to return multiple values using a tuple, as shown in Listing 4-5.</p>
+<p>每个函数都获取 ownership 之后再返还 ownership 会十分麻烦，我们可不可以在不获取 ownership 的情况下使用这个值呢？</p>
 <p>可以像例 4-5 使用元组返回多个值。</p>
 <p><span class="filename">Filename: src/main.rs</span></p>
 <pre><pre class="playground"><code class="language-rust">fn main() {
@@ -3845,10 +3592,12 @@ common. Luckily for us, Rust has a feature for this concept, called
 <code>String</code> to the calling function so we can still use the <code>String</code> after the
 call to <code>calculate_length</code>, because the <code>String</code> was moved into
 <code>calculate_length</code>.</p>
+<p>例 4-5 的问题是我们必须返回 <code>String</code>，因为在调用 <code>calculate_length</code> 函数后还需要使用它，
+但是 <code>String</code> 又被 move 到了 <code>calculate_length</code>。</p>
 <p>Here is how you would define and use a <code>calculate_length</code> function that has a
 reference to an object as a parameter instead of taking ownership of the
 value:</p>
-<p>以下你可以以一个“引用”作为参数使用 <code>calculate_length</code> 函数，而不是把参数的 ownership 交给函数：</p>
+<p>以下你可以以“引用（reference）”作为参数使用 <code>calculate_length</code> 函数，而不是把参数的 ownership 交给函数：</p>
 <p><span class="filename">Filename: src/main.rs</span></p>
 <pre><pre class="playground"><code class="language-rust">fn main() {
     let s1 = String::from(&quot;hello&quot;);
@@ -3866,7 +3615,7 @@ fn calculate_length(s: &amp;String) -&gt; usize {
 function return value is gone. Second, note that we pass <code>&amp;s1</code> into
 <code>calculate_length</code> and, in its definition, we take <code>&amp;String</code> rather than
 <code>String</code>.</p>
-<p>首先，变量声明的元组没了，函数的 return 值没了，然后，注意我们传入 <code>&amp;s1</code> 到 <code>calculate_length</code>，
+<p>经过修改，首先变量声明的元组没了，函数的 return 值没了，然后，注意我们传入 <code>&amp;s1</code> 到 <code>calculate_length</code>，
 在函数定义时，我们使用 <code>&amp;String</code> 而不是 <code>String</code>。</p>
 <p>These ampersands are <em>references</em>, and they allow you to refer to some value
 without taking ownership of it. Figure 4-5 shows a diagram.</p>
@@ -3878,9 +3627,11 @@ without taking ownership of it. Figure 4-5 shows a diagram.</p>
 accomplished with the dereference operator, <code>*</code>. We’ll see some uses of the
 dereference operator in Chapter 8 and discuss details of dereferencing in
 Chapter 15.
-注意：</p>
+注意：<code>&amp;</code> 引用的反面是通过 <code>*</code> 进行的<strong>解引用（dereferencing）</strong>。
+我们将在第八章使用解引用，第十五章深入讨论解引用的细节。</p>
 </blockquote>
 <p>Let’s take a closer look at the function call here:</p>
+<p>我们关注一下函数的内容：</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">fn main() {
 </span>    let s1 = String::from(&quot;hello&quot;);
 
@@ -3896,8 +3647,11 @@ Chapter 15.
 <p>The <code>&amp;s1</code> syntax lets us create a reference that <em>refers</em> to the value of <code>s1</code>
 but does not own it. Because it does not own it, the value it points to will
 not be dropped when the reference goes out of scope.</p>
+<p><code>&amp;s1</code> 允许我们创建一个对 <code>s1</code> 的引用，而不用转移所有权，
+也就因为没有转移在所有权，在引用离开作用域时并不会被 drop。</p>
 <p>Likewise, the signature of the function uses <code>&amp;</code> to indicate that the type of
 the parameter <code>s</code> is a reference. Let’s add some explanatory annotations:</p>
+<p>同样的，函数签名的 <code>&amp;</code> 表明参数 <code>s</code> 是一个引用。我们加上一些注释吧：</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">fn main() {
 </span><span class="boring">    let s1 = String::from(&quot;hello&quot;);
 </span><span class="boring">
@@ -3916,11 +3670,17 @@ parameter’s scope, but we don’t drop what the reference points to when it go
 out of scope because we don’t have ownership. When functions have references as
 parameters instead of the actual values, we won’t need to return the values in
 order to give back ownership, because we never had ownership.</p>
+<p><code>s</code> 所在的作用域跟之前提到的作用域没什么区别，但是引用目标不会被 drop，因为根本没有 ownership。
+当函数获取的是 reference 而不是实际的值，我们便不用在函数结束后把值返回回去，因为它从未拥有过这个变量。</p>
 <p>We call having references as function parameters <em>borrowing</em>. As in real life,
 if a person owns something, you can borrow it from them. When you’re done, you
 have to give it back.</p>
+<p>我们把 reference 做为函数参数称为<strong>借出（borrowing）</strong>。
+就像在现实生活中别人拥有一件物品，你可以借过来，使用完了后，必须还回去。</p>
 <p>So what happens if we try to modify something we’re borrowing? Try the code in
 Listing 4-6. Spoiler alert: it doesn’t work!</p>
+<p>那么我们想要修改已经 borrow 的东西会怎样？
+试试例 4-6 的代码。（剧透一下，这必是不行的！）</p>
 <p><span class="filename">Filename: src/main.rs</span></p>
 <pre><code class="language-rust ignore does_not_compile">fn main() {
     let s = String::from(&quot;hello&quot;);
@@ -3932,9 +3692,9 @@ fn change(some_string: &amp;String) {
     some_string.push_str(&quot;, world&quot;);
 }
 </code></pre>
-<p><span class="caption">Listing 4-6: Attempting to modify a borrowed value</span></p>
+<p><span class="caption">例 4-6：尝试修改一个借出了的值</span></p>
 <p>Here’s the error:</p>
-<p>这有一个错误：</p>
+<p>报错如下：</p>
 <pre><code class="language-console">$ cargo run
    Compiling ownership v0.1.0 (file:///projects/ownership)
 error[E0596]: cannot borrow `*some_string` as mutable, as it is behind a `&amp;` reference
@@ -3971,9 +3731,11 @@ fn change(some_string: &amp;mut String) {
 </code></pre></pre>
 <p>First, we had to change <code>s</code> to be <code>mut</code>. Then we had to create a mutable
 reference with <code>&amp;mut s</code> and accept a mutable reference with <code>some_string: &amp;mut String</code>.</p>
+<p>首先，为 <code>s</code> 添加 <code>mut</code>，然后通过 <code>&amp;mut s</code> 创建可变引用，再修改函数签名为接收可变引用 <code>some_string: &amp;mutString</code>。</p>
 <p>But mutable references have one big restriction: you can have only one mutable
 reference to a particular piece of data in a particular scope. This code will
 fail:</p>
+<p>不过可变引用有一个限制：在一个作用域里，对某一个数据只能存在一个引用。否则，代码会出问题：</p>
 <p><span class="filename">Filename: src/main.rs</span></p>
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">fn main() {
 </span>    let mut s = String::from(&quot;hello&quot;);
@@ -3985,6 +3747,7 @@ fail:</p>
 <span class="boring">}
 </span></code></pre>
 <p>Here’s the error:</p>
+<p>报错如下：</p>
 <pre><code class="language-console">$ cargo run
    Compiling ownership v0.1.0 (file:///projects/ownership)
 error[E0499]: cannot borrow `s` as mutable more than once at a time
@@ -4044,6 +3807,7 @@ results in an error:</p>
 <span class="boring">}
 </span></code></pre>
 <p>Here’s the error:</p>
+<p>报错如下：</p>
 <pre><code class="language-console">$ cargo run
    Compiling ownership v0.1.0 (file:///projects/ownership)
 error[E0502]: cannot borrow `s` as mutable because it is also borrowed as immutable
@@ -4093,7 +3857,7 @@ created. These scopes don’t overlap, so this code is allowed.</p>
 the Rust compiler pointing out a potential bug early (at compile time rather
 than at runtime) and showing you exactly where the problem is. Then you don’t
 have to track down why your data isn’t what you thought it was.</p>
-<h3><a class="header" href="#dangling-references" id="dangling-references">Dangling References</a></h3>
+<h3><a class="header" href="#dangling-references-悬空引用" id="dangling-references-悬空引用">Dangling References 悬空引用</a></h3>
 <p>In languages with pointers, it’s easy to erroneously create a <em>dangling
 pointer</em>, a pointer that references a location in memory that may have been
 given to someone else, by freeing some memory while preserving a pointer to
@@ -4101,8 +3865,12 @@ that memory. In Rust, by contrast, the compiler guarantees that references will
 never be dangling references: if you have a reference to some data, the
 compiler will ensure that the data will not go out of scope before the
 reference to the data does.</p>
+<p>在有指针的语言，很容易会错误地创建<strong>悬空指针（dangling pointer）</strong>。因为释放了内存而指针依然指向同样的地方，
+悬空指针指向的内存可能已经给其他变量占用。在 Rust 中，编译器保证了 reference 绝不会成为悬空引用：
+如果你引用了一些数据，编译器会保证这些数据在 reference 离开作用域前仍然可用。</p>
 <p>Let’s try to create a dangling reference, which Rust will prevent with a
 compile-time error:</p>
+<p>试试“造”一个悬空引用，会发现 Rust 报编译错误：</p>
 <p><span class="filename">Filename: src/main.rs</span></p>
 <pre><code class="language-rust ignore does_not_compile">fn main() {
     let reference_to_nothing = dangle();
@@ -4115,6 +3883,7 @@ fn dangle() -&gt; &amp;String {
 }
 </code></pre>
 <p>Here’s the error:</p>
+<p>报错如下：</p>
 <pre><code class="language-console">$ cargo run
    Compiling ownership v0.1.0 (file:///projects/ownership)
 error[E0106]: missing lifetime specifier
@@ -4139,11 +3908,14 @@ To learn more, run the command again with --verbose.
 <p>This error message refers to a feature we haven’t covered yet: lifetimes. We’ll
 discuss lifetimes in detail in Chapter 10. But, if you disregard the parts
 about lifetimes, the message does contain the key to why this code is a problem:</p>
+<p>报错信息指出的问题我们还没讨论过：生命周期，我们将在第十章讨论它。
+现在，即使你忽略报错里生命周期的部分，也还是能看出一些问题：</p>
 <pre><code class="language-text">this function's return type contains a borrowed value, but there is no value
 for it to be borrowed from.
 </code></pre>
 <p>Let’s take a closer look at exactly what’s happening at each stage of our
 <code>dangle</code> code:</p>
+<p>看看我们的“悬空”代码每一步都发生了什么：</p>
 <p><span class="filename">Filename: src/main.rs</span></p>
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">fn main() {
 </span><span class="boring">    let reference_to_nothing = dangle();
@@ -4161,7 +3933,10 @@ for it to be borrowed from.
 <code>s</code> will be deallocated. But we tried to return a reference to it. That means
 this reference would be pointing to an invalid <code>String</code>. That’s no good! Rust
 won’t let us do this.</p>
+<p><code>s</code> 在 <code>dangle</code> 中创建，当 <code>dangle</code> 运行完，<code>s</code> 会被释放。但我们尝试去返回它的引用，
+这意味着这个引用指向一个无效的 <code>String</code>，这可不好！Rust 不允许这种事情发生。</p>
 <p>The solution here is to return the <code>String</code> directly:</p>
+<p>解决方案是直接返回 <code>String</code>：</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">fn main() {
 </span><span class="boring">    let string = no_dangle();
 </span><span class="boring">}
@@ -4174,18 +3949,33 @@ won’t let us do this.</p>
 </code></pre></pre>
 <p>This works without any problems. Ownership is moved out, and nothing is
 deallocated.</p>
-<h3><a class="header" href="#the-rules-of-references" id="the-rules-of-references">The Rules of References</a></h3>
+<p>完美，ownership 被转移到外层，什么都不会被释放。</p>
+<h3><a class="header" href="#the-rules-of-references-引用的规则" id="the-rules-of-references-引用的规则">The Rules of References 引用的规则</a></h3>
 <p>Let’s recap what we’ve discussed about references:</p>
+<p>来总结一下 reference 吧：</p>
 <ul>
-<li>At any given time, you can have <em>either</em> one mutable reference <em>or</em> any
-number of immutable references.</li>
-<li>References must always be valid.</li>
+<li>
+<p>At any given time, you can have <em>either</em> one mutable reference <em>or</em> any
+number of immutable references.</p>
+</li>
+<li>
+<p>References must always be valid.</p>
+</li>
+<li>
+<p>你可以<strong>选择</strong> 1 个可变引用<strong>或</strong>多个不变引用</p>
+</li>
+<li>
+<p>Reference 必须总是有效的</p>
+</li>
 </ul>
 <p>Next, we’ll look at a different kind of reference: slices.</p>
+<p>接着，我们学习另一种引用：slice</p>
 <h2><a class="header" href="#the-slice-type" id="the-slice-type">The Slice Type</a></h2>
 <p>Another data type that does not have ownership is the <em>slice</em>. Slices let you
 reference a contiguous sequence of elements in a collection rather than the
 whole collection.</p>
+<p>另一种不拥有 ownership 的数据类型是 <strong>slice</strong>。
+<strong>slice</strong> 可以让你引用一个集合中的连续序列，而不是直接引用整个集合。</p>
 <p>Here’s a small programming problem: write a function that takes a string and
 returns the first word it finds in that string. If the function doesn’t find a
 space in the string, the whole string must be one word, so the entire string

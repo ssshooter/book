@@ -176,10 +176,12 @@
 <code>String</code> to the calling function so we can still use the <code>String</code> after the
 call to <code>calculate_length</code>, because the <code>String</code> was moved into
 <code>calculate_length</code>.</p>
+<p>例 4-5 的问题是我们必须返回 <code>String</code>，因为在调用 <code>calculate_length</code> 函数后还需要使用它，
+但是 <code>String</code> 又被 move 到了 <code>calculate_length</code>。</p>
 <p>Here is how you would define and use a <code>calculate_length</code> function that has a
 reference to an object as a parameter instead of taking ownership of the
 value:</p>
-<p>以下你可以以一个“引用”作为参数使用 <code>calculate_length</code> 函数，而不是把参数的 ownership 交给函数：</p>
+<p>以下你可以以“引用（reference）”作为参数使用 <code>calculate_length</code> 函数，而不是把参数的 ownership 交给函数：</p>
 <p><span class="filename">Filename: src/main.rs</span></p>
 <pre><pre class="playground"><code class="language-rust">fn main() {
     let s1 = String::from(&quot;hello&quot;);
@@ -197,7 +199,7 @@ fn calculate_length(s: &amp;String) -&gt; usize {
 function return value is gone. Second, note that we pass <code>&amp;s1</code> into
 <code>calculate_length</code> and, in its definition, we take <code>&amp;String</code> rather than
 <code>String</code>.</p>
-<p>首先，变量声明的元组没了，函数的 return 值没了，然后，注意我们传入 <code>&amp;s1</code> 到 <code>calculate_length</code>，
+<p>经过修改，首先变量声明的元组没了，函数的 return 值没了，然后，注意我们传入 <code>&amp;s1</code> 到 <code>calculate_length</code>，
 在函数定义时，我们使用 <code>&amp;String</code> 而不是 <code>String</code>。</p>
 <p>These ampersands are <em>references</em>, and they allow you to refer to some value
 without taking ownership of it. Figure 4-5 shows a diagram.</p>
@@ -209,9 +211,11 @@ without taking ownership of it. Figure 4-5 shows a diagram.</p>
 accomplished with the dereference operator, <code>*</code>. We’ll see some uses of the
 dereference operator in Chapter 8 and discuss details of dereferencing in
 Chapter 15.
-注意：</p>
+注意：<code>&amp;</code> 引用的反面是通过 <code>*</code> 进行的<strong>解引用（dereferencing）</strong>。
+我们将在第八章使用解引用，第十五章深入讨论解引用的细节。</p>
 </blockquote>
 <p>Let’s take a closer look at the function call here:</p>
+<p>我们关注一下函数的内容：</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">fn main() {
 </span>    let s1 = String::from(&quot;hello&quot;);
 
@@ -227,8 +231,11 @@ Chapter 15.
 <p>The <code>&amp;s1</code> syntax lets us create a reference that <em>refers</em> to the value of <code>s1</code>
 but does not own it. Because it does not own it, the value it points to will
 not be dropped when the reference goes out of scope.</p>
+<p><code>&amp;s1</code> 允许我们创建一个对 <code>s1</code> 的引用，而不用转移所有权，
+也就因为没有转移在所有权，在引用离开作用域时并不会被 drop。</p>
 <p>Likewise, the signature of the function uses <code>&amp;</code> to indicate that the type of
 the parameter <code>s</code> is a reference. Let’s add some explanatory annotations:</p>
+<p>同样的，函数签名的 <code>&amp;</code> 表明参数 <code>s</code> 是一个引用。我们加上一些注释吧：</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">fn main() {
 </span><span class="boring">    let s1 = String::from(&quot;hello&quot;);
 </span><span class="boring">
@@ -247,11 +254,17 @@ parameter’s scope, but we don’t drop what the reference points to when it go
 out of scope because we don’t have ownership. When functions have references as
 parameters instead of the actual values, we won’t need to return the values in
 order to give back ownership, because we never had ownership.</p>
+<p><code>s</code> 所在的作用域跟之前提到的作用域没什么区别，但是引用目标不会被 drop，因为根本没有 ownership。
+当函数获取的是 reference 而不是实际的值，我们便不用在函数结束后把值返回回去，因为它从未拥有过这个变量。</p>
 <p>We call having references as function parameters <em>borrowing</em>. As in real life,
 if a person owns something, you can borrow it from them. When you’re done, you
 have to give it back.</p>
+<p>我们把 reference 做为函数参数称为<strong>借出（borrowing）</strong>。
+就像在现实生活中别人拥有一件物品，你可以借过来，使用完了后，必须还回去。</p>
 <p>So what happens if we try to modify something we’re borrowing? Try the code in
 Listing 4-6. Spoiler alert: it doesn’t work!</p>
+<p>那么我们想要修改已经 borrow 的东西会怎样？
+试试例 4-6 的代码。（剧透一下，这必是不行的！）</p>
 <p><span class="filename">Filename: src/main.rs</span></p>
 <pre><code class="language-rust ignore does_not_compile">fn main() {
     let s = String::from(&quot;hello&quot;);
@@ -263,9 +276,9 @@ fn change(some_string: &amp;String) {
     some_string.push_str(&quot;, world&quot;);
 }
 </code></pre>
-<p><span class="caption">Listing 4-6: Attempting to modify a borrowed value</span></p>
+<p><span class="caption">例 4-6：尝试修改一个借出了的值</span></p>
 <p>Here’s the error:</p>
-<p>这有一个错误：</p>
+<p>报错如下：</p>
 <pre><code class="language-console">$ cargo run
    Compiling ownership v0.1.0 (file:///projects/ownership)
 error[E0596]: cannot borrow `*some_string` as mutable, as it is behind a `&amp;` reference
@@ -302,9 +315,11 @@ fn change(some_string: &amp;mut String) {
 </code></pre></pre>
 <p>First, we had to change <code>s</code> to be <code>mut</code>. Then we had to create a mutable
 reference with <code>&amp;mut s</code> and accept a mutable reference with <code>some_string: &amp;mut String</code>.</p>
+<p>首先，为 <code>s</code> 添加 <code>mut</code>，然后通过 <code>&amp;mut s</code> 创建可变引用，再修改函数签名为接收可变引用 <code>some_string: &amp;mutString</code>。</p>
 <p>But mutable references have one big restriction: you can have only one mutable
 reference to a particular piece of data in a particular scope. This code will
 fail:</p>
+<p>不过可变引用有一个限制：在一个作用域里，对某一个数据只能存在一个引用。否则，代码会出问题：</p>
 <p><span class="filename">Filename: src/main.rs</span></p>
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">fn main() {
 </span>    let mut s = String::from(&quot;hello&quot;);
@@ -316,6 +331,7 @@ fail:</p>
 <span class="boring">}
 </span></code></pre>
 <p>Here’s the error:</p>
+<p>报错如下：</p>
 <pre><code class="language-console">$ cargo run
    Compiling ownership v0.1.0 (file:///projects/ownership)
 error[E0499]: cannot borrow `s` as mutable more than once at a time
@@ -375,6 +391,7 @@ results in an error:</p>
 <span class="boring">}
 </span></code></pre>
 <p>Here’s the error:</p>
+<p>报错如下：</p>
 <pre><code class="language-console">$ cargo run
    Compiling ownership v0.1.0 (file:///projects/ownership)
 error[E0502]: cannot borrow `s` as mutable because it is also borrowed as immutable
@@ -424,7 +441,7 @@ created. These scopes don’t overlap, so this code is allowed.</p>
 the Rust compiler pointing out a potential bug early (at compile time rather
 than at runtime) and showing you exactly where the problem is. Then you don’t
 have to track down why your data isn’t what you thought it was.</p>
-<h3><a class="header" href="#dangling-references" id="dangling-references">Dangling References</a></h3>
+<h3><a class="header" href="#dangling-references-悬空引用" id="dangling-references-悬空引用">Dangling References 悬空引用</a></h3>
 <p>In languages with pointers, it’s easy to erroneously create a <em>dangling
 pointer</em>, a pointer that references a location in memory that may have been
 given to someone else, by freeing some memory while preserving a pointer to
@@ -432,8 +449,12 @@ that memory. In Rust, by contrast, the compiler guarantees that references will
 never be dangling references: if you have a reference to some data, the
 compiler will ensure that the data will not go out of scope before the
 reference to the data does.</p>
+<p>在有指针的语言，很容易会错误地创建<strong>悬空指针（dangling pointer）</strong>。因为释放了内存而指针依然指向同样的地方，
+悬空指针指向的内存可能已经给其他变量占用。在 Rust 中，编译器保证了 reference 绝不会成为悬空引用：
+如果你引用了一些数据，编译器会保证这些数据在 reference 离开作用域前仍然可用。</p>
 <p>Let’s try to create a dangling reference, which Rust will prevent with a
 compile-time error:</p>
+<p>试试“造”一个悬空引用，会发现 Rust 报编译错误：</p>
 <p><span class="filename">Filename: src/main.rs</span></p>
 <pre><code class="language-rust ignore does_not_compile">fn main() {
     let reference_to_nothing = dangle();
@@ -446,6 +467,7 @@ fn dangle() -&gt; &amp;String {
 }
 </code></pre>
 <p>Here’s the error:</p>
+<p>报错如下：</p>
 <pre><code class="language-console">$ cargo run
    Compiling ownership v0.1.0 (file:///projects/ownership)
 error[E0106]: missing lifetime specifier
@@ -470,11 +492,14 @@ To learn more, run the command again with --verbose.
 <p>This error message refers to a feature we haven’t covered yet: lifetimes. We’ll
 discuss lifetimes in detail in Chapter 10. But, if you disregard the parts
 about lifetimes, the message does contain the key to why this code is a problem:</p>
+<p>报错信息指出的问题我们还没讨论过：生命周期，我们将在第十章讨论它。
+现在，即使你忽略报错里生命周期的部分，也还是能看出一些问题：</p>
 <pre><code class="language-text">this function's return type contains a borrowed value, but there is no value
 for it to be borrowed from.
 </code></pre>
 <p>Let’s take a closer look at exactly what’s happening at each stage of our
 <code>dangle</code> code:</p>
+<p>看看我们的“悬空”代码每一步都发生了什么：</p>
 <p><span class="filename">Filename: src/main.rs</span></p>
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">fn main() {
 </span><span class="boring">    let reference_to_nothing = dangle();
@@ -492,7 +517,10 @@ for it to be borrowed from.
 <code>s</code> will be deallocated. But we tried to return a reference to it. That means
 this reference would be pointing to an invalid <code>String</code>. That’s no good! Rust
 won’t let us do this.</p>
+<p><code>s</code> 在 <code>dangle</code> 中创建，当 <code>dangle</code> 运行完，<code>s</code> 会被释放。但我们尝试去返回它的引用，
+这意味着这个引用指向一个无效的 <code>String</code>，这可不好！Rust 不允许这种事情发生。</p>
 <p>The solution here is to return the <code>String</code> directly:</p>
+<p>解决方案是直接返回 <code>String</code>：</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">fn main() {
 </span><span class="boring">    let string = no_dangle();
 </span><span class="boring">}
@@ -505,14 +533,27 @@ won’t let us do this.</p>
 </code></pre></pre>
 <p>This works without any problems. Ownership is moved out, and nothing is
 deallocated.</p>
-<h3><a class="header" href="#the-rules-of-references" id="the-rules-of-references">The Rules of References</a></h3>
+<p>完美，ownership 被转移到外层，什么都不会被释放。</p>
+<h3><a class="header" href="#the-rules-of-references-引用的规则" id="the-rules-of-references-引用的规则">The Rules of References 引用的规则</a></h3>
 <p>Let’s recap what we’ve discussed about references:</p>
+<p>来总结一下 reference 吧：</p>
 <ul>
-<li>At any given time, you can have <em>either</em> one mutable reference <em>or</em> any
-number of immutable references.</li>
-<li>References must always be valid.</li>
+<li>
+<p>At any given time, you can have <em>either</em> one mutable reference <em>or</em> any
+number of immutable references.</p>
+</li>
+<li>
+<p>References must always be valid.</p>
+</li>
+<li>
+<p>你可以<strong>选择</strong> 1 个可变引用<strong>或</strong>多个不变引用</p>
+</li>
+<li>
+<p>Reference 必须总是有效的</p>
+</li>
 </ul>
 <p>Next, we’ll look at a different kind of reference: slices.</p>
+<p>接着，我们学习另一种引用：slice</p>
 
                     </main>
 
