@@ -4,10 +4,15 @@ Another data type that does not have ownership is the *slice*. Slices let you
 reference a contiguous sequence of elements in a collection rather than the
 whole collection.
 
+另一种不拥有 ownership 的数据类型是 **slice**。
+**slice** 可以让你引用一个集合中的连续序列，而不是直接引用整个集合。
+
 Here’s a small programming problem: write a function that takes a string and
 returns the first word it finds in that string. If the function doesn’t find a
 space in the string, the whole string must be one word, so the entire string
 should be returned.
+
+
 
 Let’s think about the signature of this function:
 
